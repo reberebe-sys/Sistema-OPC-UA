@@ -1,0 +1,4 @@
+asyncua==1.1.0
+cryptography
+fastapi
+uvicorn

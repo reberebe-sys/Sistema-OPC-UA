@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control OPC-UA - Estable</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .big-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            color: #38bdf8;
+            margin: 10px 0;
+        }
+
+        .label {
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        canvas {
+            max-height: 360px;
+            width: 100% !important;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Panel de Control Estable</h1>
+    <div class="dashboard">
+        <div class="card">
+            <div class="label">Temperatura</div>
+            <div class="big-number" id="t-val">0.0º</div>
+            <div id="st-val" style="color: #22c55e;">CONECTADO</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Ciclos</div>
+            <div class="big-number" id="c-val">0</div>
+            <button class="btn" onclick="reset()">Reset Contador</button>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="label">Historial de Temperatura</div>
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Temp', data: [], borderColor: '#38bdf8', tension: 0.3 }] },
+            options: { responsive: true, scales: { x: { display: false } } }
+        });
+
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        ws.onmessage = (e) => {
+            const d = JSON.parse(e.data);
+            document.getElementById('t-val').innerText = d.temp + 'º';
+            document.getElementById('c-val').innerText = d.ciclos;
+
+            if (chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+            chart.data.labels.push("");
+            chart.data.datasets[0].data.push(d.temp);
+            chart.update('none');
+        };
+
+        async function reset() { await fetch('/reset', { method: 'POST' }); }
+    </script>
+</body>
+
+</html>
